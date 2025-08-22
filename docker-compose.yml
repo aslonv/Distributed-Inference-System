@@ -1,0 +1,160 @@
+version: '3.8'
+
+services:
+  # Coordinator Service
+  coordinator:
+    build:
+      context: .
+      dockerfile: Dockerfile.coordinator
+    container_name: inference-coordinator
+    ports:
+      - "8000:8000"
+    environment:
+      - LOG_LEVEL=INFO
+      - WORKER_TIMEOUT=30
+      - MAX_RETRIES=3
+    networks:
+      - inference-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    restart: unless-stopped
+
+  # Worker 1 - MobileNet
+  worker1:
+    build:
+      context: .
+      dockerfile: Dockerfile.worker
+    container_name: inference-worker1
+    ports:
+      - "8001:8001"
+    environment:
+      - WORKER_PORT=8001
+      - MODEL_NAME=mobilenet
+      - COORDINATOR_URL=http://coordinator:8000
+    networks:
+      - inference-network
+    depends_on:
+      - coordinator
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8001/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+        reservations:
+          memory: 1G
+
+  # Worker 2 - ResNet18
+  worker2:
+    build:
+      context: .
+      dockerfile: Dockerfile.worker
+    container_name: inference-worker2
+    ports:
+      - "8002:8002"
+    environment:
+      - WORKER_PORT=8002
+      - MODEL_NAME=resnet18
+      - COORDINATOR_URL=http://coordinator:8000
+    networks:
+      - inference-network
+    depends_on:
+      - coordinator
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8002/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+        reservations:
+          memory: 1G
+
+  # Worker 3 - EfficientNet
+  worker3:
+    build:
+      context: .
+      dockerfile: Dockerfile.worker
+    container_name: inference-worker3
+    ports:
+      - "8003:8003"
+    environment:
+      - WORKER_PORT=8003
+      - MODEL_NAME=efficientnet
+      - COORDINATOR_URL=http://coordinator:8000
+    networks:
+      - inference-network
+    depends_on:
+      - coordinator
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8003/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+        reservations:
+          memory: 1G
+
+  # Monitoring Dashboard
+  monitoring:
+    build:
+      context: .
+      dockerfile: Dockerfile.monitoring
+    container_name: inference-monitoring
+    ports:
+      - "8501:8501"
+    environment:
+      - COORDINATOR_URL=http://coordinator:8000
+    networks:
+      - inference-network
+    depends_on:
+      - coordinator
+    restart: unless-stopped
+
+networks:
+  inference-network:
+    driver: bridge
+
+volumes:
+  redis-data:
+  prometheus-data:
+  grafana-data:
+
+# Dockerfile.coordinator
+# FROM python:3.9-slim
+# WORKDIR /app
+# COPY requirements.txt .
+# RUN pip install --no-cache-dir -r requirements.txt
+# COPY coordinator/ ./coordinator/
+# CMD ["python", "-m", "uvicorn", "coordinator.app:app", "--host", "0.0.0.0", "--port", "8000"]
+
+# Dockerfile.worker
+# FROM python:3.9-slim
+# WORKDIR /app
+# COPY requirements.txt .
+# RUN pip install --no-cache-dir -r requirements.txt
+# COPY workers/ ./workers/
+# CMD ["python", "workers/worker.py", "--port", "${WORKER_PORT}", "--model", "${MODEL_NAME}"]
+
+# Dockerfile.monitoring
+# FROM python:3.9-slim
+# WORKDIR /app
+# COPY requirements.txt .
+# RUN pip install --no-cache-dir -r requirements.txt
+# COPY monitoring/ ./monitoring/
+# EXPOSE 8501
+# CMD ["streamlit", "run", "monitoring/dashboard.py", "--server.port=8501", "--server.address=0.0.0.0"]
