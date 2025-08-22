@@ -3,6 +3,7 @@
 A scalable, fault-tolerant microservice-based AI inference system that simulates distributed processing with multiple worker nodes, intelligent load balancing, and comprehensive monitoring.
 
 ## Project Structure
+```
 distributed-inference-system/
 ├── coordinator/
 │   ├── app.py              # Main coordinator service
@@ -21,7 +22,7 @@ distributed-inference-system/
 ├── requirements.txt        # Python dependencies
 ├── setup.sh               # Setup script
 └── README.md              # This file
-
+```
 
 ## Quick Start
 ### Prerequisites
