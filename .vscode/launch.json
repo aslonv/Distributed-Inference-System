@@ -1,0 +1,51 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Coordinator",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/coordinator/app.py",
+            "console": "integratedTerminal"
+        },
+        {
+            "name": "Worker 1",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/workers/worker.py",
+            "args": ["--port", "8001", "--model", "mobilenet"],
+            "console": "integratedTerminal"
+        },
+        {
+            "name": "Worker 2",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/workers/worker.py",
+            "args": ["--port", "8002", "--model", "resnet18"],
+            "console": "integratedTerminal"
+        },
+        {
+            "name": "Worker 3",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/workers/worker.py",
+            "args": ["--port", "8003", "--model", "efficientnet"],
+            "console": "integratedTerminal"
+        },
+        {
+            "name": "Dashboard",
+            "type": "python",
+            "request": "launch",
+            "module": "streamlit",
+            "args": ["run", "monitoring/dashboard.py"],
+            "console": "integratedTerminal"
+        }
+    ],
+    "compounds": [
+        {
+            "name": "Full System",
+            "configurations": ["Coordinator", "Worker 1", "Worker 2", "Worker 3", "Dashboard"],
+            "stopAll": true
+        }
+    ]
+}

@@ -1,3 +1,8 @@
+"""
+Distributed Inference System - Real-time Monitoring Dashboard
+Live monitoring dashboard built with Streamlit
+"""
+
 import streamlit as st
 import requests
 import pandas as pd
@@ -9,15 +14,20 @@ from datetime import datetime, timedelta
 import json
 from typing import Dict, List, Any
 
+# ==================== Configuration ====================
+
 COORDINATOR_URL = "http://localhost:8000"
 REFRESH_INTERVAL = 2  # seconds
 
+# Page configuration
 st.set_page_config(
     page_title="Distributed Inference Monitor",
     page_icon="🚀",
     layout="wide",
     initial_sidebar_state="expanded"
 )
+
+# ==================== Helper Functions ====================
 
 @st.cache_data(ttl=1)
 def fetch_metrics() -> Dict:
@@ -73,22 +83,24 @@ def get_status_color(status: str) -> str:
     }
     return colors.get(status, "⚫")
 
+# ==================== Dashboard Layout ====================
+
 def main():
     """Main dashboard function"""
     
     # Title and header
-    st.title("Distributed AI Inference System Monitor")
+    st.title("🚀 Distributed AI Inference System Monitor")
     st.markdown("---")
     
     # Sidebar controls
     with st.sidebar:
-        st.header("Controls")
+        st.header("⚙️ Controls")
         
         auto_refresh = st.checkbox("Auto Refresh", value=True)
         refresh_rate = st.slider("Refresh Rate (seconds)", 1, 10, REFRESH_INTERVAL)
         
         st.markdown("---")
-        st.header("Chaos Engineering")
+        st.header("🧪 Chaos Engineering")
         
         col1, col2 = st.columns(2)
         with col1:
@@ -117,21 +129,32 @@ def main():
             st.warning("Crash simulated on Worker 1!")
         
         st.markdown("---")
-        st.header("Test Traffic")
+        st.header("📊 Test Traffic")
         
         num_requests = st.number_input("Number of Requests", 1, 1000, 10)
         if st.button("Send Test Requests", use_container_width=True):
             send_test_requests(num_requests)
     
+    # Auto refresh
     if auto_refresh:
         time.sleep(refresh_rate)
         st.rerun()
-
+    
+    # Fetch current data
     metrics = fetch_metrics()
     workers = fetch_workers()
     queue = fetch_queue_status()
     health = fetch_health()
-
+    
+    # Initialize session state for tracking
+    if "last_total" not in st.session_state:
+        st.session_state.last_total = 0
+    if "activity_log" not in st.session_state:
+        st.session_state.activity_log = []
+    if "last_logged_total" not in st.session_state:
+        st.session_state.last_logged_total = 0
+    
+    # System Status Overview
     st.header("📈 System Overview")
     
     col1, col2, col3, col4, col5 = st.columns(5)
@@ -175,11 +198,12 @@ def main():
         )
     
     st.markdown("---")
-
+    
+    # Performance Metrics
     col1, col2 = st.columns(2)
     
     with col1:
-        st.subheader("Latency Distribution")
+        st.subheader("⚡ Latency Distribution")
         
         if "latency_p50" in metrics:
             fig = go.Figure()
@@ -211,7 +235,7 @@ def main():
             st.info("No latency data available yet")
     
     with col2:
-        st.subheader("Request Distribution")
+        st.subheader("📊 Request Distribution")
         
         if metrics.get("requests_total", 0) > 0:
             fig = go.Figure(data=[
@@ -233,11 +257,13 @@ def main():
     
     st.markdown("---")
     
-    st.header("Worker Status")
+    # Worker Status
+    st.header("👷 Worker Status")
     
     if workers.get("workers"):
         worker_df = pd.DataFrame(workers["workers"])
-
+        
+        # Create worker cards
         cols = st.columns(len(workers["workers"]))
         
         for idx, (col, worker) in enumerate(zip(cols, workers["workers"])):
@@ -258,14 +284,16 @@ def main():
                     <p><strong>Avg Latency:</strong> {worker['avg_latency']:.1f}ms</p>
                 </div>
                 """, unsafe_allow_html=True)
-
-        st.subheader("Worker Performance")
+        
+        # Worker performance chart
+        st.subheader("📈 Worker Performance")
         
         fig = make_subplots(
             rows=1, cols=2,
             subplot_titles=("Request Distribution", "Load Distribution")
         )
-
+        
+        # Request distribution
         fig.add_trace(
             go.Bar(
                 x=[w["id"] for w in workers["workers"]],
@@ -275,7 +303,8 @@ def main():
             ),
             row=1, col=1
         )
-
+        
+        # Load distribution
         fig.add_trace(
             go.Bar(
                 x=[w["id"] for w in workers["workers"]],
@@ -292,8 +321,9 @@ def main():
         st.warning("No workers connected")
     
     st.markdown("---")
-
-    st.header("Queue Status")
+    
+    # Queue Status
+    st.header("📥 Queue Status")
     
     col1, col2, col3, col4 = st.columns(4)
     
@@ -308,7 +338,8 @@ def main():
     
     with col4:
         st.metric("Low Priority", queue.get("low_priority", 0))
-
+    
+    # Queue visualization
     if queue.get("size", 0) > 0:
         fig = go.Figure(data=[
             go.Bar(
@@ -330,12 +361,14 @@ def main():
         st.plotly_chart(fig, use_container_width=True)
     
     st.markdown("---")
-
+    
+    # System Logs (simulated)
     st.header("📜 Recent Activity")
     
     if "activity_log" not in st.session_state:
         st.session_state.activity_log = []
-
+    
+    # Add new activity
     if metrics.get("requests_total", 0) > st.session_state.get("last_logged_total", 0):
         st.session_state.activity_log.append({
             "timestamp": datetime.now().strftime("%H:%M:%S"),
@@ -343,7 +376,8 @@ def main():
             "type": "info"
         })
         st.session_state.last_logged_total = metrics.get("requests_total", 0)
-
+    
+    # Display recent logs
     for log in st.session_state.activity_log[-5:]:
         if log["type"] == "error":
             st.error(f"[{log['timestamp']}] {log['event']}")
@@ -356,7 +390,12 @@ def send_test_requests(num_requests: int):
     """Send test requests to the coordinator"""
     import base64
     import random
-
+    
+    # Initialize activity_log if it doesn't exist
+    if "activity_log" not in st.session_state:
+        st.session_state.activity_log = []
+    
+    # Generate dummy image data
     dummy_image = base64.b64encode(b"dummy_image_data").decode()
     
     progress_bar = st.progress(0)
@@ -367,6 +406,7 @@ def send_test_requests(num_requests: int):
     
     for i in range(num_requests):
         try:
+            # Random priority and model
             priority = random.choice(["high", "normal", "low"])
             model = random.choice(["mobilenet", "resnet18", "efficientnet", "any"])
             
@@ -387,11 +427,13 @@ def send_test_requests(num_requests: int):
                 
         except Exception as e:
             failed_count += 1
-
+        
+        # Update progress
         progress = (i + 1) / num_requests
         progress_bar.progress(progress)
         status_text.text(f"Sent {i+1}/{num_requests} - Success: {success_count}, Failed: {failed_count}")
-
+    
+    # Add to activity log
     st.session_state.activity_log.append({
         "timestamp": datetime.now().strftime("%H:%M:%S"),
         "event": f"Sent {num_requests} test requests - {success_count} succeeded, {failed_count} failed",
@@ -402,5 +444,13 @@ def send_test_requests(num_requests: int):
     time.sleep(2)
     st.rerun()
 
+# ==================== Main Entry Point ====================
+
 if __name__ == "__main__":
+    import sys
+    import os
+    
+    # Add parent directory to path for imports to work
+    sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    
     main()

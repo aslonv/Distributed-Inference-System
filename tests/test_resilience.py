@@ -8,8 +8,6 @@ from typing import List, Dict, Any
 from datetime import datetime
 from enum import Enum
 
-# ==================== Test Scenarios ====================
-
 class FailureScenario(Enum):
     WORKER_CRASH = "worker_crash"
     WORKER_TIMEOUT = "worker_timeout"
@@ -84,16 +82,14 @@ class ResilienceTest:
             return {"success": False, "error": str(e)}
     
     async def kill_worker(self, port: int):
-        """Simulate worker crash"""
         print(f"    Killing worker on port {port}")
         try:
             async with self.session.post(f"http://localhost:{port}/simulate/crash"):
                 pass
         except:
-            pass  # Expected to fail
+            pass
     
     async def enable_chaos(self, port: int):
-        """Enable chaos mode on a worker"""
         print(f"   Enabling chaos on worker {port}")
         try:
             async with self.session.post(f"http://localhost:{port}/chaos/enable"):
@@ -102,18 +98,15 @@ class ResilienceTest:
             pass
     
     async def disable_chaos(self, port: int):
-        """Disable chaos mode on a worker"""
         try:
             async with self.session.post(f"http://localhost:{port}/chaos/disable"):
                 pass
         except:
             pass
     
-    # ==================== Test Scenarios ====================
-    
     async def test_worker_crash(self) -> Dict:
         """Test system behavior when a worker crashes"""
-        print("\n Testing Worker Crash Scenario...")
+        print("\nTesting Worker Crash Scenario...")
         
         results = {
             "scenario": "Worker Crash",
@@ -148,7 +141,7 @@ class ResilienceTest:
         # Step 3: Kill a worker
         print("   Step 3: Simulating worker crash...")
         await self.kill_worker(self.worker_ports[0])
-        await asyncio.sleep(2)  # Wait for system to detect
+        await asyncio.sleep(2)
         
         # Step 4: Test system during failure
         print("   Step 4: Testing system during failure...")
@@ -178,7 +171,6 @@ class ResilienceTest:
             "workers_active": recovery_status.get("stats", {}).get("workers_active", 0)
         })
         
-        # Calculate test result
         results["passed"] = failure_success >= 8  # 80% success during failure
         results["end_time"] = datetime.now().isoformat()
         
@@ -186,7 +178,7 @@ class ResilienceTest:
     
     async def test_chaos_mode(self) -> Dict:
         """Test system behavior with chaos engineering enabled"""
-        print("\n  Testing Chaos Mode Scenario...")
+        print("\nTesting Chaos Mode Scenario...")
         
         results = {
             "scenario": "Chaos Mode",
@@ -194,7 +186,6 @@ class ResilienceTest:
             "steps": []
         }
         
-        # Enable chaos on all workers
         print("   Enabling chaos on all workers...")
         for port in self.worker_ports:
             await self.enable_chaos(port)
@@ -204,7 +195,6 @@ class ResilienceTest:
             "workers_affected": len(self.worker_ports)
         })
         
-        # Send requests during chaos
         print("   Sending requests during chaos...")
         chaos_results = []
         for i in range(20):
@@ -224,12 +214,10 @@ class ResilienceTest:
             "avg_retries": avg_retries
         })
         
-        # Disable chaos
         print("   Disabling chaos...")
         for port in self.worker_ports:
             await self.disable_chaos(port)
         
-        # Test after chaos
         print("   Testing recovery after chaos...")
         recovery_results = []
         for _ in range(10):
@@ -250,7 +238,7 @@ class ResilienceTest:
     
     async def test_cascading_failure(self) -> Dict:
         """Test system behavior during cascading failures"""
-        print("\n🧪 Testing Cascading Failure Scenario...")
+        print("\nTesting Cascading Failure Scenario...")
         
         results = {
             "scenario": "Cascading Failure",
@@ -258,12 +246,11 @@ class ResilienceTest:
             "steps": []
         }
         
-        # Kill workers one by one
+        # Kill workers sequentially
         for i, port in enumerate(self.worker_ports[:2]):  # Kill 2 out of 3
             print(f"   Stage {i+1}: Killing worker on port {port}")
             await self.kill_worker(port)
             
-            # Test system after each failure
             stage_results = []
             for _ in range(5):
                 result = await self.send_test_request()
@@ -279,7 +266,6 @@ class ResilienceTest:
             
             await asyncio.sleep(2)
         
-        # Test with minimal workers
         print("   Testing with minimal workers...")
         minimal_results = []
         for _ in range(10):
@@ -300,7 +286,7 @@ class ResilienceTest:
     
     async def test_load_during_failure(self) -> Dict:
         """Test system under load while experiencing failures"""
-        print("\n  Testing Load During Failure Scenario...")
+        print("\nTesting Load During Failure Scenario...")
         
         results = {
             "scenario": "Load During Failure",
@@ -308,7 +294,6 @@ class ResilienceTest:
             "steps": []
         }
         
-        # Start with baseline
         print("   Establishing baseline...")
         baseline = []
         for _ in range(10):
@@ -321,12 +306,11 @@ class ResilienceTest:
             "success_rate": baseline_success
         })
         
-        # Enable chaos and send burst of requests
         print("   Enabling chaos and sending burst...")
         await self.enable_chaos(self.worker_ports[0])
         
         tasks = []
-        for i in range(50):  # Burst of 50 requests
+        for i in range(50):
             task = self.send_test_request()
             tasks.append(task)
         
@@ -340,7 +324,6 @@ class ResilienceTest:
             "success_rate": burst_success / 50
         })
         
-        # Cleanup
         await self.disable_chaos(self.worker_ports[0])
         
         results["passed"] = burst_success >= 35  # 70% success during burst with chaos
@@ -348,12 +331,10 @@ class ResilienceTest:
         
         return results
     
-    # ==================== Main Test Runner ====================
-    
     async def run_all_tests(self) -> Dict:
         """Run all resilience tests"""
         print("\n" + "="*60)
-        print("  DISTRIBUTED INFERENCE SYSTEM - RESILIENCE TEST SUITE")
+        print("DISTRIBUTED INFERENCE SYSTEM - RESILIENCE TEST SUITE")
         print("="*60)
         
         all_results = {
@@ -362,7 +343,6 @@ class ResilienceTest:
             "tests": []
         }
         
-        # Run each test scenario
         test_scenarios = [
             ("Worker Crash", self.test_worker_crash),
             ("Chaos Mode", self.test_chaos_mode),
@@ -376,14 +356,13 @@ class ResilienceTest:
                 result = await test_func()
                 all_results["tests"].append(result)
                 
-                # Print result
                 if result["passed"]:
-                    print(f"  {name}: PASSED")
+                    print(f"{name}: PASSED")
                 else:
-                    print(f"  {name}: FAILED")
+                    print(f"{name}: FAILED")
                     
             except Exception as e:
-                print(f"  {name}: ERROR - {e}")
+                print(f"{name}: ERROR - {e}")
                 all_results["tests"].append({
                     "scenario": name,
                     "passed": False,
@@ -407,9 +386,8 @@ class ResilienceTest:
         return all_results
 
 def print_test_summary(results: Dict):
-    """Print formatted test summary"""
     print("\n" + "="*60)
-    print("  TEST SUMMARY")
+    print("TEST SUMMARY")
     print("="*60)
     
     summary = results.get("summary", {})
@@ -419,9 +397,9 @@ def print_test_summary(results: Dict):
     print(f"Failed: {summary.get('failed', 0)}")
     print(f"Pass Rate: {summary.get('pass_rate', 0)*100:.1f}%")
     
-    print("\n📋 Detailed Results:")
+    print("\nDetailed Results:")
     for test in results.get("tests", []):
-        status = "  PASS" if test.get("passed") else " FAIL"
+        status = "PASS" if test.get("passed") else "FAIL"
         print(f"   {test.get('scenario')}: {status}")
         
         if not test.get("passed") and "error" in test:
@@ -443,7 +421,6 @@ def print_test_summary(results: Dict):
     print("="*60)
 
 async def main():
-    """Main test runner"""
     print("\nStarting Resilience Test Suite...")
     print("Make sure the distributed inference system is running")
     print("Waiting 3 seconds for system to be ready...")
@@ -451,21 +428,16 @@ async def main():
     
     try:
         async with ResilienceTest() as tester:
-            # Check if system is running
             status = await tester.get_system_status()
             if status.get("status") == "unknown":
-                print("\n Error: Cannot connect to coordinator!")
+                print("\nError: Cannot connect to coordinator!")
                 print("Please make sure the system is running:")
                 print("  ./start_all.sh")
                 return
             
-            # Run all tests
             results = await tester.run_all_tests()
-            
-            # Print summary
             print_test_summary(results)
             
-            # Save results to file
             with open("resilience_test_results.json", "w") as f:
                 json.dump(results, f, indent=2)
             
