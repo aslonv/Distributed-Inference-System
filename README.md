@@ -731,25 +731,6 @@ On a typical development machine (8GB RAM, 4 cores):
 - Each worker: ~800MB RAM (including model)
 - Total system: ~2.5GB RAM
 
-### Optimization Tips
-
-**System-Level:**
-- Increase worker instances for higher throughput
-- Use GPU workers for faster model inference
-- Implement request batching for efficiency
-- Add Redis for persistent queuing
-
-**Configuration:**
-- Tune `BATCH_SIZE` for your workload
-- Adjust `WORKER_TIMEOUT` based on model complexity
-- Configure load balancing strategy based on usage patterns
-
-**Infrastructure:**
-- Deploy workers on separate machines
-- Use load balancers for external traffic
-- Implement connection pooling
-- Add caching for frequent requests
-
 ### Monitoring Performance
 
 Use the built-in monitoring tools:
